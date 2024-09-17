@@ -18,6 +18,7 @@ class TokenKind(Enum):
 
     keyword_block = auto()
     keyword_call = auto()
+    keyword_loop = auto()
     keyword_while = auto()
     keyword_until = auto()
     keyword_if = auto()
@@ -279,6 +280,8 @@ class Tokenizer:
                                         put_simple(TokenKind.keyword_block, full)
                                     case "call":
                                         put_simple(TokenKind.keyword_call, full)
+                                    case "loop":
+                                        put_simple(TokenKind.keyword_loop, full)
                                     case "while":
                                         put_simple(TokenKind.keyword_while, full)
                                     case "until":
