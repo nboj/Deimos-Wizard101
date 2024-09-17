@@ -187,7 +187,7 @@ class Compiler:
 
     def prep_expression(self, expr: Expression):
         match expr:
-            case GreaterExpression():
+            case GreaterExpression() | SubExpression():
                 self.prep_expression(expr.lhs)
                 self.prep_expression(expr.rhs)
             case ReadVarExpr():
@@ -262,6 +262,7 @@ class Compiler:
             case KillVarStmt():
                 self.pop_stack(stmt.sym)
             case WriteVarStmt():
+                self.prep_expression(stmt.expr)
                 self.emit(InstructionKind.write_stack, [self.stack_loc(stmt.sym), stmt.expr])
             case _:
                 raise CompilerError(f"Unknown statement: {stmt}\n{type(stmt)}")
