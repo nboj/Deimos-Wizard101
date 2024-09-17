@@ -81,7 +81,7 @@ class Compiler:
         self.emit(InstructionKind.pop_stack)
 
     def stack_loc(self, sym: Symbol):
-        return self._stack_slots[sym]
+        return self._stack_slots[sym] - self._stack_offset
 
     def emit(self, kind: InstructionKind, data: Any | None = None):
         self._program.append(Instruction(kind, data))
