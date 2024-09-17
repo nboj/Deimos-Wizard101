@@ -131,7 +131,7 @@ class Expression:
         pass
 
 class NumberExpression(Expression):
-    def __init__(self, number: float):
+    def __init__(self, number: float | int):
         self.number = number
 
     def __repr__(self) -> str:
@@ -175,19 +175,24 @@ class XYZExpression(Expression):
     def __repr__(self) -> str:
         return f"XYZE({self.x}, {self.y}, {self.z})"
 
-class EquivalentExpression(Expression):
+class BinaryExpression(Expression):
     def __init__(self, lhs: Expression, rhs: Expression):
         self.lhs = lhs
         self.rhs = rhs
 
+class SubExpression(BinaryExpression):
+    def __repr__(self) -> str:
+        return f"SubE({self.lhs}, {self.rhs})"
+
+class DivideExpression(BinaryExpression):
+    def __repr__(self) -> str:
+        return f"DivideE({self.lhs}, {self.rhs})"
+
+class EquivalentExpression(BinaryExpression):
     def __repr__(self) -> str:
         return f"EquivalentE({self.lhs}, {self.rhs})"
 
-class GreaterExpression(Expression):
-    def __init__(self, lhs: Expression, rhs: Expression):
-        self.lhs = lhs
-        self.rhs = rhs
-
+class GreaterExpression(BinaryExpression):
     def __repr__(self) -> str:
         return f"GreaterE({self.lhs}, {self.rhs})"
 
@@ -198,14 +203,6 @@ class SelectorGroup(Expression):
 
     def __repr__(self) -> str:
         return f"SelectorG({self.players}, {self.expr})"
-
-class DivideExpression(Expression):
-    def __init__(self, lhs: Expression, rhs: Expression):
-        self.lhs = lhs
-        self.rhs = rhs
-
-    def __repr__(self) -> str:
-        return f"DivideE({self.lhs}, {self.rhs})"
 
 class IdentExpression(Expression):
     def __init__(self, ident: str):
@@ -220,6 +217,20 @@ class SymExpression(Expression):
 
     def __repr__(self) -> str:
         return f"SymE({self.sym})"
+
+class StackLocExpression(Expression):
+    def __init__(self, offset: int):
+        self.offset = offset
+
+    def __repr__(self) -> str:
+        return f"StackLocE({self.offset})"
+
+class ReadVarExpr(Expression):
+    def __init__(self, loc: Expression) -> None:
+        self.loc = loc
+
+    def __repr__(self) -> str:
+        return f"ReadVarE {self.loc}"
 
 
 class Eval(Expression):
@@ -279,6 +290,14 @@ class UntilStmt(Stmt):
     def __repr__(self) -> str:
         return f"UntilS {self.expr} {{ {self.body} }}"
 
+class TimesStmt(Stmt):
+    def __init__(self, num: int, body: StmtList):
+        self.num = num
+        self.body = body
+
+    def __repr__(self) -> str:
+        return f"TimesS {self.expr} {{ {self.body} }}"
+
 class BlockDefStmt(Stmt):
     def __init__(self, name: Expression, body: StmtList) -> None:
         self.name = name
@@ -293,6 +312,29 @@ class CallStmt(Stmt):
 
     def __repr__(self) -> str:
         return f"CallS {self.name}"
+
+
+class DefVarStmt(Stmt):
+    def __init__(self, sym: "Symbol") -> None:
+        self.sym = sym
+
+    def __repr__(self) -> str:
+        return f"DefVarS {self.sym}"
+
+class WriteVarStmt(Stmt):
+    def __init__(self, sym: "Symbol", expr: Expression) -> None:
+        self.sym = sym
+        self.expr = expr
+
+    def __repr__(self) -> str:
+        return f"WriteVarS {self.sym} = {self.expr}"
+
+class KillVarStmt(Stmt):
+    def __init__(self, sym: "Symbol") -> None:
+        self.sym = sym
+
+    def __repr__(self) -> str:
+        return f"KillVarS {self.sym}"
 
 
 

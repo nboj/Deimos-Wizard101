@@ -53,8 +53,8 @@ class Analyzer:
     def gen_block_sym(self, name: str) -> Symbol:
         return self.scope.put_sym(Symbol(name, self.gen_sym_id(), SymbolKind.block))
 
-    def gen_var_sym(self) -> Symbol:
-        return self.scope.put_sym(Symbol(":anonymous:", self.gen_sym_id(), SymbolKind.variable))
+    def gen_var_sym(self, name="anonymous") -> Symbol:
+        return self.scope.put_sym(Symbol(f":{name}:", self.gen_sym_id(), SymbolKind.variable))
 
     def sem_expr(self, expr: Expression) -> Expression:
         return expr # TODO
@@ -111,6 +111,25 @@ class Analyzer:
                 self.open_scope()
                 stmt.body = self.sem_stmt(stmt.body)
                 self.close_scope()
+                return stmt
+            case TimesStmt():
+                var_sym = self.gen_var_sym()
+                prologue = [
+                    DefVarStmt(var_sym),
+                    WriteVarStmt(var_sym, NumberExpression(stmt.num)),
+                ]
+                epilogue = [
+                    KillVarStmt(var_sym),
+                ]
+                cond = GreaterExpression(ReadVarExpr(SymExpression(var_sym)), NumberExpression(0))
+                stmt.body.stmts.append(
+                    WriteVarStmt(var_sym, SubExpression(ReadVarExpr(SymExpression(var_sym)), NumberExpression(1)))
+                )
+
+                res = StmtList(prologue + [WhileStmt(cond, stmt.body)] + epilogue)
+                self.sem_stmt(res)
+                return res
+            case DefVarStmt() | WriteVarStmt() | KillVarStmt():
                 return stmt
             case _:
                 raise SemError(f"Unhandled statement type: {stmt}")

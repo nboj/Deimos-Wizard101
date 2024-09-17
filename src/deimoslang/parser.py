@@ -651,6 +651,11 @@ class Parser:
                 expr = self.parse_expression()
                 body = self.parse_block()
                 return UntilStmt(expr, body)
+            case TokenKind.keyword_times:
+                self.i += 1
+                count = int(self.expect_consume(TokenKind.number).value)
+                body = self.parse_block()
+                return TimesStmt(count, body)
             case TokenKind.keyword_if:
                 self.i += 1
                 expr = self.parse_expression()

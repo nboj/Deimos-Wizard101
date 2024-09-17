@@ -36,6 +36,10 @@ class InstructionKind(Enum):
 
     load_playstyle = auto()
 
+    push_stack = auto()
+    pop_stack = auto()
+    write_stack = auto()
+
     nop = auto()
 
 class Instruction:
@@ -53,6 +57,8 @@ class Compiler:
     def __init__(self, analyzer: Analyzer):
         self.analyzer = analyzer
         self._program: list[Instruction] = []
+        self._stack_offset = 0
+        self._stack_slots: dict[Symbol, int] = {}
 
     @staticmethod
     def from_text(code: str) -> "Compiler":
@@ -61,6 +67,21 @@ class Compiler:
         analyzer = Analyzer(parser.parse())
         analyzer.analyze_program()
         return Compiler(analyzer=analyzer)
+
+    def push_stack(self, sym: Symbol) -> int:
+        self.emit(InstructionKind.push_stack)
+        res = self._stack_offset
+        self._stack_offset += 1
+        self._stack_slots[sym] = res
+        return res
+
+    def pop_stack(self, sym: Symbol):
+        del self._stack_slots[sym]
+        self._stack_offset -= 1
+        self.emit(InstructionKind.pop_stack)
+
+    def stack_loc(self, sym: Symbol):
+        return self._stack_slots[sym]
 
     def emit(self, kind: InstructionKind, data: Any | None = None):
         self._program.append(Instruction(kind, data))
@@ -164,9 +185,25 @@ class Compiler:
         else:
             raise CompilerError(f"Encountered a malformed call during compilation: {call}")
 
+    def prep_expression(self, expr: Expression):
+        match expr:
+            case GreaterExpression():
+                self.prep_expression(expr.lhs)
+                self.prep_expression(expr.rhs)
+            case ReadVarExpr():
+                if isinstance(expr.loc, SymExpression):
+                    expr.loc = StackLocExpression(self.stack_loc(expr.loc.sym))
+                else:
+                    raise CompilerError(f"Malformed ReadVarExpr: {expr}")
+            case NumberExpression():
+                pass
+            case _:
+                raise CompilerError(f"Unhandled expression type: {expr}")
+
     def compile_if_stmt(self, stmt: IfStmt):
         after_if_label = self.gen_label("after_if")
         branch_true_label = self.gen_label("branch_true")
+        self.prep_expression(stmt.expr)
         self.emit(InstructionKind.jump_if, [stmt.expr, branch_true_label])
         self._compile(stmt.branch_false)
         self.emit(InstructionKind.jump, after_if_label)
@@ -183,6 +220,7 @@ class Compiler:
     def compile_while_stmt(self, stmt: WhileStmt):
         start_while_label = self.gen_label("start_while")
         end_while_label = self.gen_label("end_while")
+        self.prep_expression(stmt.expr)
         self.emit(InstructionKind.jump_ifn, [stmt.expr, end_while_label])
         self.emit(InstructionKind.label, start_while_label)
         self._compile(stmt.body)
@@ -192,6 +230,7 @@ class Compiler:
     def compile_until_stmt(self, stmt: WhileStmt):
         start_until_label = self.gen_label("start_until")
         end_until_label = self.gen_label("end_until")
+        self.prep_expression(stmt.expr)
         self.emit(InstructionKind.jump_ifn, [stmt.expr, end_until_label])
         self.emit(InstructionKind.enter_until, [stmt.expr, end_until_label]) # Order is important here. If this is after the label we blow the stack
         self.emit(InstructionKind.label, start_until_label)
@@ -218,6 +257,12 @@ class Compiler:
                 self.compile_while_stmt(stmt)
             case UntilStmt():
                 self.compile_until_stmt(stmt)
+            case DefVarStmt():
+                self.push_stack(stmt.sym)
+            case KillVarStmt():
+                self.pop_stack(stmt.sym)
+            case WriteVarStmt():
+                self.emit(InstructionKind.write_stack, [self.stack_loc(stmt.sym), stmt.expr])
             case _:
                 raise CompilerError(f"Unknown statement: {stmt}\n{type(stmt)}")
 
