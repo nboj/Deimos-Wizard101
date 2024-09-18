@@ -301,8 +301,7 @@ class Parser:
             case TokenKind.command_expr_same_place:
                 result.kind = CommandKind.expr
                 self.i += 1
-                players = self.parse_player_selector()
-                result.data = [ExprKind.same_place, players]
+                result.data = [ExprKind.same_place]
             case TokenKind.command_expr_tracking_quest:
                 result.kind = CommandKind.expr
                 self.i += 1

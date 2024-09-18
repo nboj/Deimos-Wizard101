@@ -121,8 +121,7 @@ class VM:
                         return False
                 return True
             case ExprKind.same_place:
-                other_clients = self._select_players(expression.command.data[1])
-                data = [await c.client_object.global_id_full() for c in other_clients]
+                data = [await c.client_object.global_id_full() for c in clients]
                 target = len(data)
                 for client in clients:
                     entities = await client.get_base_entity_list()
