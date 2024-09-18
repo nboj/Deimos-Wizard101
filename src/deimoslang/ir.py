@@ -31,7 +31,6 @@ class InstructionKind(Enum):
 
     label = auto()
     ret = auto()
-    brk = auto()
     call = auto()
     deimos_call = auto()
 
@@ -188,7 +187,7 @@ class Compiler:
 
     def prep_expression(self, expr: Expression):
         match expr:
-            case BinaryExpression():
+            case GreaterExpression() | SubExpression():
                 self.prep_expression(expr.lhs)
                 self.prep_expression(expr.rhs)
             case ReadVarExpr():
@@ -196,13 +195,7 @@ class Compiler:
                     expr.loc = StackLocExpression(self.stack_loc(expr.loc.sym))
                 else:
                     raise CompilerError(f"Malformed ReadVarExpr: {expr}")
-            case SelectorGroup():
-                self.prep_expression(expr.expr)
-            case UnaryExpression():
-                print("THSEIRNTEI")
-                self.prep_expression(expr.expr)
-            case NumberExpression() | Eval() | CommandExpression() | StringExpression() |\
-                 KeyExpression() | XYZExpression() | IdentExpression():
+            case NumberExpression():
                 pass
             case _:
                 raise CompilerError(f"Unhandled expression type: {expr}")
@@ -237,7 +230,6 @@ class Compiler:
     def compile_until_stmt(self, stmt: WhileStmt):
         start_until_label = self.gen_label("start_until")
         end_until_label = self.gen_label("end_until")
-        stmt.expr = UnaryExpression(TokenKind.keyword_not, stmt.expr)
         self.prep_expression(stmt.expr)
         self.emit(InstructionKind.jump_ifn, [stmt.expr, end_until_label])
         self.emit(InstructionKind.enter_until, [stmt.expr, end_until_label]) # Order is important here. If this is after the label we blow the stack
@@ -272,10 +264,6 @@ class Compiler:
             case WriteVarStmt():
                 self.prep_expression(stmt.expr)
                 self.emit(InstructionKind.write_stack, [self.stack_loc(stmt.sym), stmt.expr])
-            case BrkStmt():
-                self.emit(InstructionKind.brk, [])
-            case RetStmt():
-                self.emit(InstructionKind.ret, [])
             case _:
                 raise CompilerError(f"Unknown statement: {stmt}\n{type(stmt)}")
 
@@ -293,7 +281,7 @@ class Compiler:
 
 if __name__ == "__main__":
     from pathlib import Path
-    compiler = Compiler.from_text(Path("./deimoslang/testbot.txt").read_text())
+    compiler = Compiler.from_text(Path("./testbot.txt").read_text())
     prog = compiler.compile()
     for i in prog:
         print(i)

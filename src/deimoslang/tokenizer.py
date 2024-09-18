@@ -37,8 +37,6 @@ class TokenKind(Enum):
     keyword_xyz = auto()
     keyword_orient = auto()
     keyword_not = auto()
-    keyword_return = auto()
-    keyword_break = auto()
 
     command_kill = auto()
     command_sleep = auto()
@@ -317,10 +315,6 @@ class Tokenizer:
                                         put_simple(TokenKind.keyword_orient, full)
                                     case "not":
                                         put_simple(TokenKind.keyword_not, full)
-                                    case "return":
-                                        put_simple(TokenKind.keyword_return, full)
-                                    case "break":
-                                        put_simple(TokenKind.keyword_break, full)
 
                                     case "kill" | "killbot" | "stop" | "stopbot" | "end" | "exit":
                                         put_simple(TokenKind.command_kill, full)

@@ -1,7 +1,7 @@
 from typing import Any, Optional
 from enum import Enum, auto
 
-from .tokenizer import Token, TokenKind
+from .tokenizer import Token
 
 
 class CommandKind(Enum):
@@ -111,21 +111,6 @@ class PlayerSelector:
     def __repr__(self) -> str:
         return f"PlayerSelector(nums: {self.player_nums}, mass: {self.mass}, inverted: {self.inverted})"
 
-class SymbolKind(Enum):
-    variable = auto()
-    block = auto()
-    label = auto()
-
-class Symbol:
-    def __init__(self, literal: str, id: int, kind: SymbolKind):
-        self.literal = literal
-        self.id = id
-        self.kind = kind
-        self.defnode: Optional[Stmt] = None
-
-    def __repr__(self) -> str:
-        return f"{self.literal}:{self.id}_{self.kind.name}"
-
 class Command:
     def __init__(self):
         self.kind = CommandKind.invalid
@@ -160,12 +145,12 @@ class StringExpression(Expression):
         return f"String({self.string})"
 
 class UnaryExpression(Expression):
-    def __init__(self, operator: TokenKind, expr: Expression):
+    def __init__(self, operator: Token, expr: Expression):
         self.operator = operator
         self.expr = expr
 
     def __repr__(self) -> str:
-        return f"Unary({self.operator}, {self.expr})"
+        return f"Unary({self.operator.kind}, {self.expr})"
 
 class KeyExpression(Expression):
     def __init__(self, key: str):
@@ -227,7 +212,7 @@ class IdentExpression(Expression):
         return f"IdentE({self.ident})"
 
 class SymExpression(Expression):
-    def __init__(self, sym: Symbol):
+    def __init__(self, sym: "Symbol"):
         self.sym = sym
 
     def __repr__(self) -> str:
@@ -328,29 +313,16 @@ class CallStmt(Stmt):
     def __repr__(self) -> str:
         return f"CallS {self.name}"
 
-class BrkStmt(Stmt):
-    def __init__(self):
-        pass
-
-    def __repr__(self) -> str:
-        return f"BreakS"
-
-class RetStmt(Stmt):
-    def __init__(self):
-        pass
-
-    def __repr__(self) -> str:
-        return f"RetS"
 
 class DefVarStmt(Stmt):
-    def __init__(self, sym: Symbol) -> None:
+    def __init__(self, sym: "Symbol") -> None:
         self.sym = sym
 
     def __repr__(self) -> str:
         return f"DefVarS {self.sym}"
 
 class WriteVarStmt(Stmt):
-    def __init__(self, sym: Symbol, expr: Expression) -> None:
+    def __init__(self, sym: "Symbol", expr: Expression) -> None:
         self.sym = sym
         self.expr = expr
 
@@ -358,7 +330,7 @@ class WriteVarStmt(Stmt):
         return f"WriteVarS {self.sym} = {self.expr}"
 
 class KillVarStmt(Stmt):
-    def __init__(self, sym: Symbol) -> None:
+    def __init__(self, sym: "Symbol") -> None:
         self.sym = sym
 
     def __repr__(self) -> str:
@@ -366,3 +338,18 @@ class KillVarStmt(Stmt):
 
 
 
+class SymbolKind(Enum):
+    variable = auto()
+    block = auto()
+    label = auto()
+
+
+class Symbol:
+    def __init__(self, literal: str, id: int, kind: SymbolKind):
+        self.literal = literal
+        self.id = id
+        self.kind = kind
+        self.defnode: Optional[Stmt] = None
+
+    def __repr__(self) -> str:
+        return f"{self.literal}:{self.id}_{self.kind.name}"
