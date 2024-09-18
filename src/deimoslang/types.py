@@ -1,7 +1,7 @@
 from typing import Any, Optional
 from enum import Enum, auto
 
-from .tokenizer import Token
+from .tokenizer import Token, TokenKind
 
 
 class CommandKind(Enum):
@@ -44,6 +44,7 @@ class EvalKind(Enum):
     max_bagcount = auto()
     gold = auto()
     max_gold = auto()
+    windowtext = auto()
 
 class WaitforKind(Enum):
     dialog = auto()
@@ -145,12 +146,15 @@ class StringExpression(Expression):
         return f"String({self.string})"
 
 class UnaryExpression(Expression):
-    def __init__(self, operator: Token, expr: Expression):
-        self.operator = operator
+    def __init__(self, operator: Token|TokenKind, expr: Expression):
+        if isinstance(operator, TokenKind):
+            self.operator = operator
+        else:
+            self.operator = operator.kind
         self.expr = expr
 
     def __repr__(self) -> str:
-        return f"Unary({self.operator.kind}, {self.expr})"
+        return f"Unary({self.operator}, {self.expr})"
 
 class KeyExpression(Expression):
     def __init__(self, key: str):
@@ -191,6 +195,10 @@ class DivideExpression(BinaryExpression):
 class EquivalentExpression(BinaryExpression):
     def __repr__(self) -> str:
         return f"EquivalentE({self.lhs}, {self.rhs})"
+
+class ContainsExpression(BinaryExpression):
+    def __repr__(self) -> str:
+        return f"ContainsE({self.lhs}, {self.rhs})"
 
 class GreaterExpression(BinaryExpression):
     def __repr__(self) -> str:
@@ -234,8 +242,9 @@ class ReadVarExpr(Expression):
 
 
 class Eval(Expression):
-    def __init__(self, eval_kind: EvalKind):
+    def __init__(self, eval_kind: EvalKind, args=[]):
         self.kind = eval_kind
+        self.args = args
 
     def __repr__(self) -> str:
         return f"Eval({self.kind})"
@@ -266,6 +275,20 @@ class IfStmt(Stmt):
 
     def __repr__(self) -> str:
         return f"IfS {self.expr} {{ {self.branch_true} }} else {{ {self.branch_false} }}"
+
+class BreakStmt(Stmt):
+    def __init__(self):
+        pass
+
+    def __repr__(self) -> str:
+        return f"BreakS"
+
+class ReturnStmt(Stmt):
+    def __init__(self):
+        pass
+
+    def __repr__(self) -> str:
+        return f"ReturnS"
 
 class LoopStmt(Stmt):
     def __init__(self, body: StmtList):

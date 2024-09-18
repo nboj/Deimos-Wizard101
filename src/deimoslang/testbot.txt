@@ -1,0 +1,13 @@
+###deimos_expertmode
+print "hello, world"
+
+until healthbelow 100% {
+	break
+	print "hello"	
+}
+block yolo {
+	return 
+	print "TEST"
+	print "TEST2"
+}
+call yolo

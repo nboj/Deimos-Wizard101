@@ -31,6 +31,7 @@ class InstructionKind(Enum):
 
     label = auto()
     ret = auto()
+    brk = auto()
     call = auto()
     deimos_call = auto()
 
@@ -59,6 +60,10 @@ class Compiler:
         self._program: list[Instruction] = []
         self._stack_offset = 0
         self._stack_slots: dict[Symbol, int] = {}
+
+        self._label_dict = {}
+        self._block_label_stack = []
+        self._loop_label_stack = []
 
     @staticmethod
     def from_text(code: str) -> "Compiler":
@@ -153,24 +158,40 @@ class Compiler:
             match instr.kind:
                 case InstructionKind.label:
                     program[idx] = Instruction(InstructionKind.nop)
-                case InstructionKind.call | InstructionKind.jump:
+                case InstructionKind.call | InstructionKind.jump | InstructionKind.brk:
                     sym = instr.data
                     offset = offsets[sym]
                     program[idx] = Instruction(instr.kind, offset-idx)
+                case InstructionKind.ret: # separated in case we want to return data
+                    assert(type(instr.data)==list)
+                    try:
+                        sym = instr.data[0]
+                        offset = offsets[sym]
+                        program[idx] = Instruction(instr.kind, [offset-idx])
+                    except KeyError: 
+                        program[idx] = Instruction(InstructionKind.nop)
+
                 case InstructionKind.jump_if | InstructionKind.jump_ifn | InstructionKind.enter_until:
+                    assert(type(instr.data)==list)
                     sym = instr.data[1]
                     offset = offsets[sym]
                     program[idx] = Instruction(instr.kind, [instr.data[0], offset-idx])
                 case _:
                     pass
+
         return program
 
     def compile_block_def(self, block_def: BlockDefStmt):
         if isinstance(block_def.name, SymExpression):
             # This is only safe because the sem stage ensures there's no nested blocks
-            self.emit(InstructionKind.label, block_def.name.sym)
+            enter_block_label = block_def.name.sym
+            exit_block_label = self.gen_label("exit_block")
+            self._label_dict[enter_block_label] = exit_block_label
+            self._block_label_stack.append(enter_block_label)
+            self.emit(InstructionKind.label, enter_block_label)
             self._compile(block_def.body)
-            self.emit(InstructionKind.ret)
+            self.emit(InstructionKind.ret, [exit_block_label])
+            self._block_label_stack.pop()
         elif isinstance(block_def.name, IdentExpression):
             raise CompilerError(f"Encountered an unresolved block sym during compilation: {block_def}")
         else:
@@ -180,6 +201,7 @@ class Compiler:
         if isinstance(call.name, SymExpression):
             self.emit(InstructionKind.call, call.name.sym)
             self.emit(InstructionKind.nop)
+            self.emit(InstructionKind.label, self._label_dict[call.name.sym])
         elif isinstance(call.name, IdentExpression):
             raise CompilerError(f"Encountered an unresolved call during compilation: {call}")
         else:
@@ -187,7 +209,7 @@ class Compiler:
 
     def prep_expression(self, expr: Expression):
         match expr:
-            case GreaterExpression() | SubExpression():
+            case BinaryExpression():
                 self.prep_expression(expr.lhs)
                 self.prep_expression(expr.rhs)
             case ReadVarExpr():
@@ -195,7 +217,13 @@ class Compiler:
                     expr.loc = StackLocExpression(self.stack_loc(expr.loc.sym))
                 else:
                     raise CompilerError(f"Malformed ReadVarExpr: {expr}")
-            case NumberExpression():
+            case SelectorGroup():
+                self.prep_expression(expr.expr)
+            case ReadVarExpr():
+                self.prep_expression(expr.loc)
+            case UnaryExpression():
+                self.prep_expression(expr.expr)
+            case NumberExpression() | StringExpression() | KeyExpression() | CommandExpression() | XYZExpression() | IdentExpression() | StackLocExpression() | Eval():
                 pass
             case _:
                 raise CompilerError(f"Unhandled expression type: {expr}")
@@ -227,9 +255,12 @@ class Compiler:
         self.emit(InstructionKind.jump_if, [stmt.expr, start_while_label])
         self.emit(InstructionKind.label, end_while_label)
 
-    def compile_until_stmt(self, stmt: WhileStmt):
+    def compile_until_stmt(self, stmt: UntilStmt):
         start_until_label = self.gen_label("start_until")
         end_until_label = self.gen_label("end_until")
+        self._loop_label_stack.append(start_until_label)
+        self._label_dict[start_until_label] = end_until_label
+        stmt.expr = UnaryExpression(TokenKind.keyword_not, stmt.expr)
         self.prep_expression(stmt.expr)
         self.emit(InstructionKind.jump_ifn, [stmt.expr, end_until_label])
         self.emit(InstructionKind.enter_until, [stmt.expr, end_until_label]) # Order is important here. If this is after the label we blow the stack
@@ -237,6 +268,7 @@ class Compiler:
         self._compile(stmt.body)
         self.emit(InstructionKind.jump_if, [stmt.expr, start_until_label])
         self.emit(InstructionKind.label, end_until_label)
+        self._loop_label_stack.pop()
 
     def _compile(self, stmt: Stmt):
         match stmt:
@@ -264,6 +296,16 @@ class Compiler:
             case WriteVarStmt():
                 self.prep_expression(stmt.expr)
                 self.emit(InstructionKind.write_stack, [self.stack_loc(stmt.sym), stmt.expr])
+            case BreakStmt():
+                if len(self._loop_label_stack) <= 0:
+                    raise CompilerError(f'Break used outside loop scope')
+                label = self._label_dict[self._loop_label_stack[-1]]
+                self.emit(InstructionKind.brk, label)
+            case ReturnStmt():
+                if len(self._block_label_stack) <= 0:
+                    raise CompilerError(f'Return used outside block scope')
+                label = self._label_dict[self._block_label_stack[-1]]
+                self.emit(InstructionKind.ret, [label])
             case _:
                 raise CompilerError(f"Unknown statement: {stmt}\n{type(stmt)}")
 
@@ -281,7 +323,7 @@ class Compiler:
 
 if __name__ == "__main__":
     from pathlib import Path
-    compiler = Compiler.from_text(Path("./testbot.txt").read_text())
+    compiler = Compiler.from_text(Path("./deimoslang/testbot.txt").read_text())
     prog = compiler.compile()
     for i in prog:
         print(i)

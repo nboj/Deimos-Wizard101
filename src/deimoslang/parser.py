@@ -279,6 +279,16 @@ class Parser:
 
                 # target == evaluated
                 return self.gen_equivalent_expression(target, evaluated, player_selector)
+            case TokenKind.command_expr_window_text:
+                self.i += 1
+                window_path = self.parse_window_path()
+                contains = self.consume_optional(TokenKind.contains)
+                target = self.expect_consume(TokenKind.string)
+                assert(type(window_path)==list and type(target.value)==str)
+                if contains:
+                    return SelectorGroup(player_selector, ContainsExpression(Eval(EvalKind.windowtext, [window_path]), StringExpression(target.value)))
+                else:
+                    return SelectorGroup(player_selector, EquivalentExpression(Eval(EvalKind.windowtext, [window_path]), StringExpression(target.value)))
             case TokenKind.command_expr_playercount:
                 result.kind = CommandKind.expr
                 self.i += 1
@@ -679,6 +689,14 @@ class Parser:
                             elif_body_stack[-1].branch_false = StmtList([elif_stmt])
                         elif_body_stack.append(elif_stmt)
                 return IfStmt(expr, true_body, else_body)
+            case TokenKind.keyword_break:
+                self.i+=1
+                self.end_line_optional()
+                return BreakStmt();
+            case TokenKind.keyword_return:
+                self.i+=1
+                self.end_line_optional()
+                return ReturnStmt();
             case _:
                 return CommandStmt(self.parse_command())
 

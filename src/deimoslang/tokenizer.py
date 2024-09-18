@@ -13,6 +13,7 @@ class TokenKind(Enum):
     player_num = auto()
     string = auto()
     number = auto()
+    contains = auto()
     percent = auto()
     path = auto() # A/B/C
 
@@ -37,6 +38,8 @@ class TokenKind(Enum):
     keyword_xyz = auto()
     keyword_orient = auto()
     keyword_not = auto()
+    keyword_return = auto()
+    keyword_break = auto()
 
     command_kill = auto()
     command_sleep = auto()
@@ -85,6 +88,7 @@ class TokenKind(Enum):
     command_expr_gold_below = auto()
     command_expr_window_disabled = auto()
     command_expr_same_place = auto()
+    command_expr_window_text = auto()
 
     colon = auto() # :
     comma = auto()
@@ -277,6 +281,7 @@ class Tokenizer:
                                 put_simple(TokenKind.player_num, full, int(full[1:len(full)]))
                             else:
                                 match normalize_ident(full):
+                                    # keywords
                                     case "block":
                                         put_simple(TokenKind.keyword_block, full)
                                     case "call":
@@ -315,7 +320,12 @@ class Tokenizer:
                                         put_simple(TokenKind.keyword_orient, full)
                                     case "not":
                                         put_simple(TokenKind.keyword_not, full)
+                                    case "return":
+                                        put_simple(TokenKind.keyword_return, full)
+                                    case "break":
+                                        put_simple(TokenKind.keyword_break, full)
 
+                                    # commands 
                                     case "kill" | "killbot" | "stop" | "stopbot" | "end" | "exit":
                                         put_simple(TokenKind.command_kill, full)
                                     case "sleep" | "wait" | "delay":
@@ -358,6 +368,8 @@ class Tokenizer:
                                         put_simple(TokenKind.command_load_playstyle, full)
 
                                     # expression commands
+                                    case "contains":
+                                        put_simple(TokenKind.contains, full)
                                     case "windowvisible":
                                         put_simple(TokenKind.command_expr_window_visible, full)
                                     case "inzone":
@@ -406,6 +418,8 @@ class Tokenizer:
                                         put_simple(TokenKind.command_expr_window_disabled, full)
                                     case "sameplace":
                                         put_simple(TokenKind.command_expr_same_place, full)
+                                    case "windowtext":
+                                        put_simple(TokenKind.command_expr_window_text, full)
                                     case _:
                                         put_simple(TokenKind.identifier, full)
                             i = j
