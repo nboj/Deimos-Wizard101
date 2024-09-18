@@ -241,19 +241,27 @@ class Compiler:
 
     def compile_loop_stmt(self, stmt: LoopStmt):
         start_loop_label = self.gen_label("start_loop")
+        end_loop_label = self.gen_label("end_loop")
+        self._loop_label_stack.append(start_loop_label)
+        self._label_dict[start_loop_label] = end_loop_label
         self.emit(InstructionKind.label, start_loop_label)
         self._compile(stmt.body)
         self.emit(InstructionKind.jump, start_loop_label)
+        self.emit(InstructionKind.label, end_loop_label)
+        self._loop_label_stack.pop()
 
     def compile_while_stmt(self, stmt: WhileStmt):
         start_while_label = self.gen_label("start_while")
         end_while_label = self.gen_label("end_while")
+        self._loop_label_stack.append(start_while_label)
+        self._label_dict[start_while_label] = end_while_label
         self.prep_expression(stmt.expr)
         self.emit(InstructionKind.jump_ifn, [stmt.expr, end_while_label])
         self.emit(InstructionKind.label, start_while_label)
         self._compile(stmt.body)
         self.emit(InstructionKind.jump_if, [stmt.expr, start_while_label])
         self.emit(InstructionKind.label, end_while_label)
+        self._loop_label_stack.pop()
 
     def compile_until_stmt(self, stmt: UntilStmt):
         start_until_label = self.gen_label("start_until")
