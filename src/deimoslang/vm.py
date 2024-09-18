@@ -514,9 +514,6 @@ class VM:
                 for i in range(len(self._callstack) -1, -1, -1):
                     if isinstance(self._callstack.peek(i), BlockStackFrame):
                         self._ip = self._callstack.pop_frame().return_address
-                        break
-                    else:
-                        self._callstack.pop_frame()
 
             case InstructionKind.enter_until:
                 assert type(instruction.data) == list
