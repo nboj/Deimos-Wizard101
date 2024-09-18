@@ -22,6 +22,28 @@ from loguru import logger
 class VMError(Exception):
     pass
 
+class StackFrame:
+    def __init__(self, return_address, vars=[]):
+        self.return_address = return_address
+        self.local_vars = vars
+class UntilStackFrame(StackFrame):
+    pass
+class BlockStackFrame(StackFrame):
+    pass
+
+class Stack:
+    def __init__(self):
+        self.stack: list[StackFrame] = []
+    def __len__(self):
+        return len(self.stack)
+    def pop_frame(self) -> StackFrame:
+        print("Frame popped")
+        return self.stack.pop()
+    def push_frame(self, frame: StackFrame):
+        print("Frame pushed")
+        self.stack.append(frame)
+    def peek(self, idx = -1):
+        return self.stack[idx]
 
 class VM:
     def __init__(self, clients: list[Client]):
@@ -30,18 +52,16 @@ class VM:
         self.running = False
         self.killed = False
         self._ip = 0 # instruction pointer
-        self._callstack: list[int] = []
+        self._callstack: Stack = Stack()
 
         # Every until loop condition must be checked for every vm step.
         # Once a condition becomes True, all untils that were entered later must be exited and removed.
         # This means that the stack must be rolled back to the index stored here and the rhs of this list is discarded.
-        self._until_stack_sizes: list[tuple[Expression, int]] = []
 
     def reset(self):
         self.program = []
         self._ip = 0
-        self._callstack = []
-        self._until_stack_sizes = []
+        self._callstack = Stack()
 
     def stop(self):
         self.running = False
@@ -213,7 +233,7 @@ class VM:
                     await self.eval(expression.z, client), # type: ignore
                 )
             case UnaryExpression():
-                match expression.operator.kind:
+                match expression.operator:
                     case TokenKind.minus:
                         return -(await self.eval(expression.expr, client)) # type: ignore
                     case TokenKind.keyword_not:
@@ -439,12 +459,15 @@ class VM:
                 raise VMError(f"Unimplemented deimos call: {instruction}")
 
     async def _process_untils(self):
-        for i in range(len(self._until_stack_sizes) - 1, -1, -1):
-            (expr, stack_size) = self._until_stack_sizes[i]
-            if await self.eval(expr):
-                self._until_stack_sizes = self._until_stack_sizes[:i]
-                self._callstack = self._callstack[:stack_size]
-                self._ip = self._callstack.pop()
+        for i in range(len(self._callstack) - 1, -1, -1):
+            frame = self._callstack.peek(i)
+            if not isinstance(frame, UntilStackFrame):
+                continue
+            expr = frame.local_vars[0]
+            if not await self.eval(expr):
+                while len(self._callstack) > i:
+                    self._callstack.pop_frame()
+                self._ip = frame.return_address
                 return
 
     async def step(self):
@@ -480,18 +503,22 @@ class VM:
                     self._ip += instruction.data[1]
 
             case InstructionKind.call:
-                self._callstack.append(self._ip + 1)
+                self._callstack.push_frame(BlockStackFrame(self._ip + 1))
                 jump = instruction.data  
                 self._ip += jump # type: ignore
 
+            case InstructionKind.brk:
+                self._ip = self._callstack.pop_frame().return_address
+
             case InstructionKind.ret:
-                self._ip = self._callstack.pop()
+                for i in range(len(self._callstack) -1, -1, -1):
+                    if isinstance(self._callstack.peek(i), BlockStackFrame):
+                        self._ip = self._callstack.pop_frame().return_address
 
             case InstructionKind.enter_until:
                 assert type(instruction.data) == list
                 exit_dist = instruction.data[1]
-                self._callstack.append(self._ip + exit_dist)
-                self._until_stack_sizes.append((instruction.data[0], len(self._callstack)))
+                self._callstack.push_frame(UntilStackFrame(self._ip + exit_dist, [instruction.data[0]]))
                 self._ip += 1 # simply advance, if the until is finished immediately that's fine because it's checked at the start of each step
 
             case InstructionKind.log_literal:
@@ -562,6 +589,9 @@ class VM:
             case InstructionKind.deimos_call:
                 await self.exec_deimos_call(instruction)
                 self._ip += 1
+            case InstructionKind.push_stack:
+                self._ip += 1
+
             case _:
                 raise VMError(f"Unimplemented instruction: {instruction}")
         if self._ip >= len(self.program):

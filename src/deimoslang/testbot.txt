@@ -1,0 +1,13 @@
+###deimos_expertmode
+until health 5786 {
+	block test {
+		while bagcount 65 {
+			print "bag 65"
+			sleep 1
+		}	
+		print "health 5786"
+		sleep 1
+	}
+	call test
+}
+print "out"
