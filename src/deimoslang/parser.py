@@ -78,7 +78,7 @@ class Parser:
         kinds = [TokenKind.minus]
         if self.tokens[self.i].kind in kinds:
             operator = self.expect_consume_any(kinds)
-            return UnaryExpression(operator, self.parse_unary_expression())
+            return UnaryExpression(operator.kind, self.parse_unary_expression())
         else:
             return self.parse_atom()
 
@@ -313,7 +313,7 @@ class Parser:
         kinds = [TokenKind.keyword_not]
         if self.tokens[self.i].kind in kinds:
             operator = self.expect_consume_any(kinds)
-            return UnaryExpression(operator, self.parse_command_expression())
+            return UnaryExpression(operator.kind, self.parse_command_expression())
         else:
             return self.parse_command_expression()
 
@@ -603,7 +603,6 @@ class Parser:
                 self.i += 1
                 result.data = [self.expect_consume(TokenKind.string).value]
                 self.end_line()
-
             case _:
                 self.err(self.tokens[self.i], "Unhandled command token")
         return result
@@ -679,7 +678,16 @@ class Parser:
                             elif_body_stack[-1].branch_false = StmtList([elif_stmt])
                         elif_body_stack.append(elif_stmt)
                 return IfStmt(expr, true_body, else_body)
+            case TokenKind.keyword_break:
+                self.consume_any_ident()
+                self.i += 1
+                return BrkStmt()
+            case TokenKind.keyword_return:
+                self.consume_any_ident()
+                self.i += 1
+                return RetStmt()
             case _:
+                print(self.tokens[self.i].kind)
                 return CommandStmt(self.parse_command())
 
     def parse(self) -> list[Stmt]:

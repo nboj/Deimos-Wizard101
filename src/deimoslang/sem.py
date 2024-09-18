@@ -129,7 +129,7 @@ class Analyzer:
                 res = StmtList(prologue + [WhileStmt(cond, stmt.body)] + epilogue)
                 self.sem_stmt(res)
                 return res
-            case DefVarStmt() | WriteVarStmt() | KillVarStmt():
+            case DefVarStmt() | WriteVarStmt() | KillVarStmt() | BrkStmt() | RetStmt():
                 return stmt
             case _:
                 raise SemError(f"Unhandled statement type: {stmt}")
