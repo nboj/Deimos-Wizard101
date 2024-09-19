@@ -249,13 +249,12 @@ class Compiler:
         start_until_label = self.gen_label("start_until")
         end_until_label = self.gen_label("end_until")
         self._loop_label_stack.append(end_until_label)
-        stmt.expr = UnaryExpression(TokenKind.keyword_not, stmt.expr)
         self.prep_expression(stmt.expr)
-        self.emit(InstructionKind.jump_ifn, [stmt.expr, end_until_label])
+        self.emit(InstructionKind.jump_if, [stmt.expr, end_until_label])
         self.emit(InstructionKind.enter_until, [stmt.expr, end_until_label]) # Order is important here. If this is after the label we blow the stack
         self.emit(InstructionKind.label, start_until_label)
         self._compile(stmt.body)
-        self.emit(InstructionKind.jump_if, [stmt.expr, start_until_label])
+        self.emit(InstructionKind.jump_ifn, [stmt.expr, start_until_label])
         self.emit(InstructionKind.label, end_until_label)
         self._loop_label_stack.pop()
 

@@ -461,7 +461,7 @@ class VM:
     async def _process_untils(self):
         for i in range(len(self._until_stack_sizes) - 1, -1, -1):
             (expr, stack_size) = self._until_stack_sizes[i]
-            if not await self.eval(expr):
+            if await self.eval(expr):
                 self._until_stack_sizes = self._until_stack_sizes[:i]
                 self._callstack = self._callstack[:stack_size]
                 self._ip = self._callstack.pop()
