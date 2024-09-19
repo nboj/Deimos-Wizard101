@@ -57,7 +57,6 @@ class Analyzer:
     def close_loop(self):
         self.close_scope()
         self._loop_nesting_level-=1
-
     def open_scope(self):
         self.scope = Scope(self.scope)
 

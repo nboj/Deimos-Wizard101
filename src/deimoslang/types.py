@@ -146,15 +146,12 @@ class StringExpression(Expression):
         return f"String({self.string})"
 
 class UnaryExpression(Expression):
-    def __init__(self, operator: Token|TokenKind, expr: Expression):
-        if isinstance(operator, TokenKind):
-            self.operator = operator
-        else:
-            self.operator = operator.kind
+    def __init__(self, operator: Token, expr: Expression):
+        self.operator = operator
         self.expr = expr
 
     def __repr__(self) -> str:
-        return f"Unary({self.operator}, {self.expr})"
+        return f"Unary({self.operator.kind}, {self.expr})"
 
 class KeyExpression(Expression):
     def __init__(self, key: str):
