@@ -507,10 +507,6 @@ class VM:
             case InstructionKind.ret:
                 self._ip = self._callstack.pop()
 
-            case InstructionKind.brk:
-                assert(type(instruction.data)==int)
-                self._ip += instruction.data
-
             case InstructionKind.enter_until:
                 assert type(instruction.data) == list
                 exit_dist = instruction.data[1]

@@ -31,7 +31,6 @@ class InstructionKind(Enum):
 
     label = auto()
     ret = auto()
-    brk = auto()
     call = auto()
     deimos_call = auto()
 
@@ -156,7 +155,7 @@ class Compiler:
             match instr.kind:
                 case InstructionKind.label:
                     program[idx] = Instruction(InstructionKind.nop)
-                case InstructionKind.call | InstructionKind.jump | InstructionKind.brk:
+                case InstructionKind.call | InstructionKind.jump:
                     sym = instr.data
                     offset = offsets[sym]
                     program[idx] = Instruction(instr.kind, offset-idx)
@@ -286,7 +285,7 @@ class Compiler:
                 self.emit(InstructionKind.write_stack, [self.stack_loc(stmt.sym), stmt.expr])
             case BreakStmt():
                 label = self._loop_label_stack[-1]
-                self.emit(InstructionKind.brk, label)
+                self.emit(InstructionKind.jump, label)
             case ReturnStmt():
                 self.emit(InstructionKind.ret)
             case _:
