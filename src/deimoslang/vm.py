@@ -212,7 +212,7 @@ class VM:
                     await self.eval(expression.z, client), # type: ignore
                 )
             case UnaryExpression():
-                match expression.operator:
+                match expression.operator.kind:
                     case TokenKind.minus:
                         return -(await self.eval(expression.expr, client)) # type: ignore
                     case TokenKind.keyword_not:
