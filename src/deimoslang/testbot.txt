@@ -1,13 +1,10 @@
 ###deimos_expertmode
-print "hello, world"
-
-until healthbelow 100% {
+block test {
+	if bagcount 100% {
+		return
+	}
+}
+call test
+until bagcount 100% {
 	break
-	print "hello"	
 }
-block yolo {
-	return 
-	print "TEST"
-	print "TEST2"
-}
-call yolo

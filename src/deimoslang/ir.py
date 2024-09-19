@@ -61,8 +61,6 @@ class Compiler:
         self._stack_offset = 0
         self._stack_slots: dict[Symbol, int] = {}
 
-        self._label_dict = {}
-        self._block_label_stack = []
         self._loop_label_stack = []
 
     @staticmethod
@@ -162,15 +160,6 @@ class Compiler:
                     sym = instr.data
                     offset = offsets[sym]
                     program[idx] = Instruction(instr.kind, offset-idx)
-                case InstructionKind.ret: # separated in case we want to return data
-                    assert(type(instr.data)==list)
-                    try:
-                        sym = instr.data[0]
-                        offset = offsets[sym]
-                        program[idx] = Instruction(instr.kind, [offset-idx])
-                    except KeyError: 
-                        program[idx] = Instruction(InstructionKind.nop)
-
                 case InstructionKind.jump_if | InstructionKind.jump_ifn | InstructionKind.enter_until:
                     assert(type(instr.data)==list)
                     sym = instr.data[1]
@@ -185,13 +174,9 @@ class Compiler:
         if isinstance(block_def.name, SymExpression):
             # This is only safe because the sem stage ensures there's no nested blocks
             enter_block_label = block_def.name.sym
-            exit_block_label = self.gen_label("exit_block")
-            self._label_dict[enter_block_label] = exit_block_label
-            self._block_label_stack.append(enter_block_label)
             self.emit(InstructionKind.label, enter_block_label)
             self._compile(block_def.body)
-            self.emit(InstructionKind.ret, [exit_block_label])
-            self._block_label_stack.pop()
+            self.emit(InstructionKind.ret)
         elif isinstance(block_def.name, IdentExpression):
             raise CompilerError(f"Encountered an unresolved block sym during compilation: {block_def}")
         else:
@@ -201,7 +186,6 @@ class Compiler:
         if isinstance(call.name, SymExpression):
             self.emit(InstructionKind.call, call.name.sym)
             self.emit(InstructionKind.nop)
-            self.emit(InstructionKind.label, self._label_dict[call.name.sym])
         elif isinstance(call.name, IdentExpression):
             raise CompilerError(f"Encountered an unresolved call during compilation: {call}")
         else:
@@ -242,8 +226,7 @@ class Compiler:
     def compile_loop_stmt(self, stmt: LoopStmt):
         start_loop_label = self.gen_label("start_loop")
         end_loop_label = self.gen_label("end_loop")
-        self._loop_label_stack.append(start_loop_label)
-        self._label_dict[start_loop_label] = end_loop_label
+        self._loop_label_stack.append(end_loop_label)
         self.emit(InstructionKind.label, start_loop_label)
         self._compile(stmt.body)
         self.emit(InstructionKind.jump, start_loop_label)
@@ -253,8 +236,7 @@ class Compiler:
     def compile_while_stmt(self, stmt: WhileStmt):
         start_while_label = self.gen_label("start_while")
         end_while_label = self.gen_label("end_while")
-        self._loop_label_stack.append(start_while_label)
-        self._label_dict[start_while_label] = end_while_label
+        self._loop_label_stack.append(end_while_label)
         self.prep_expression(stmt.expr)
         self.emit(InstructionKind.jump_ifn, [stmt.expr, end_while_label])
         self.emit(InstructionKind.label, start_while_label)
@@ -266,8 +248,7 @@ class Compiler:
     def compile_until_stmt(self, stmt: UntilStmt):
         start_until_label = self.gen_label("start_until")
         end_until_label = self.gen_label("end_until")
-        self._loop_label_stack.append(start_until_label)
-        self._label_dict[start_until_label] = end_until_label
+        self._loop_label_stack.append(end_until_label)
         stmt.expr = UnaryExpression(TokenKind.keyword_not, stmt.expr)
         self.prep_expression(stmt.expr)
         self.emit(InstructionKind.jump_ifn, [stmt.expr, end_until_label])
@@ -305,15 +286,10 @@ class Compiler:
                 self.prep_expression(stmt.expr)
                 self.emit(InstructionKind.write_stack, [self.stack_loc(stmt.sym), stmt.expr])
             case BreakStmt():
-                if len(self._loop_label_stack) <= 0:
-                    raise CompilerError(f'Break used outside loop scope')
-                label = self._label_dict[self._loop_label_stack[-1]]
+                label = self._loop_label_stack[-1]
                 self.emit(InstructionKind.brk, label)
             case ReturnStmt():
-                if len(self._block_label_stack) <= 0:
-                    raise CompilerError(f'Return used outside block scope')
-                label = self._label_dict[self._block_label_stack[-1]]
-                self.emit(InstructionKind.ret, [label])
+                self.emit(InstructionKind.ret)
             case _:
                 raise CompilerError(f"Unknown statement: {stmt}\n{type(stmt)}")
 

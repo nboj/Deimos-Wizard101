@@ -39,6 +39,25 @@ class Analyzer:
         self._block_defs: list[BlockDefStmt] = []
         self._stmts = stmts
 
+        self._block_nesting_level = 0
+        self._loop_nesting_level = 0
+
+    def open_block(self):
+        self.open_scope()
+        self._block_nesting_level+=1
+
+    def close_block(self):
+        self.close_scope()
+        self._block_nesting_level-=1
+
+    def open_loop(self):
+        self.open_scope()
+        self._loop_nesting_level+=1
+
+    def close_loop(self):
+        self.close_scope()
+        self._loop_nesting_level-=1
+
     def open_scope(self):
         self.scope = Scope(self.scope)
 
@@ -65,9 +84,9 @@ class Analyzer:
                 if not isinstance(stmt.name, IdentExpression):
                     raise SemError(f"Only IdentExpression is allowed during block declaration")
                 sym = self.gen_block_sym(stmt.name.ident)
-                self.open_scope()
+                self.open_block()
                 stmt.body = self.sem_stmt(stmt.body)
-                self.close_scope()
+                self.close_block()
                 stmt.name = SymExpression(sym)
                 sym.defnode = stmt
                 self._block_defs.append(stmt)
@@ -102,15 +121,15 @@ class Analyzer:
                 self.close_scope()
                 return stmt
             case LoopStmt():
-                self.open_scope()
+                self.open_loop()
                 stmt.body = self.sem_stmt(stmt.body)
-                self.close_scope()
+                self.close_loop()
                 return stmt
             case WhileStmt() | UntilStmt():
                 stmt.expr = self.sem_expr(stmt.expr)
-                self.open_scope()
+                self.open_loop()
                 stmt.body = self.sem_stmt(stmt.body)
-                self.close_scope()
+                self.close_loop()
                 return stmt
             case TimesStmt():
                 var_sym = self.gen_var_sym()
@@ -129,7 +148,15 @@ class Analyzer:
                 res = StmtList(prologue + [WhileStmt(cond, stmt.body)] + epilogue)
                 self.sem_stmt(res)
                 return res
-            case DefVarStmt() | WriteVarStmt() | KillVarStmt() | ReturnStmt() | BreakStmt():
+            case ReturnStmt():
+                if self._block_nesting_level <= 0:
+                    raise SemError(f"Return used outside of block scope")
+                return stmt
+            case BreakStmt():
+                if self._loop_nesting_level <= 0:
+                    raise SemError(f"Break used outside of loop scope")
+                return stmt
+            case DefVarStmt() | WriteVarStmt() | KillVarStmt():
                 return stmt
             case _:
                 raise SemError(f"Unhandled statement type: {stmt}")

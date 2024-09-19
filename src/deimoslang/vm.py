@@ -500,19 +500,16 @@ class VM:
                     self._ip += instruction.data[1]
 
             case InstructionKind.call:
+                assert(type(instruction.data)==int)
                 self._callstack.append(self._ip + 1)
-                jump = instruction.data  
-                self._ip += jump # type: ignore
+                self._ip += instruction.data 
 
             case InstructionKind.ret:
-                assert(type(instruction.data)==list)
-                self._callstack.pop()
-                self._ip += instruction.data[0]
+                self._ip = self._callstack.pop()
 
             case InstructionKind.brk:
                 assert(type(instruction.data)==int)
                 self._ip += instruction.data
-                pass
 
             case InstructionKind.enter_until:
                 assert type(instruction.data) == list
