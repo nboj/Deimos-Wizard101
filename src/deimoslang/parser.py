@@ -690,11 +690,11 @@ class Parser:
                 return IfStmt(expr, true_body, else_body)
             case TokenKind.keyword_break:
                 self.i+=1
-                self.end_line_optional()
+                self.end_line()
                 return BreakStmt();
             case TokenKind.keyword_return:
                 self.i+=1
-                self.end_line_optional()
+                self.end_line()
                 return ReturnStmt();
             case _:
                 return CommandStmt(self.parse_command())
