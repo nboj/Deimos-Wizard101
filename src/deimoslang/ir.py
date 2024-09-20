@@ -201,8 +201,6 @@ class Compiler:
                     raise CompilerError(f"Malformed ReadVarExpr: {expr}")
             case SelectorGroup():
                 self.prep_expression(expr.expr)
-            case ReadVarExpr():
-                self.prep_expression(expr.loc)
             case UnaryExpression():
                 self.prep_expression(expr.expr)
             case NumberExpression() | StringExpression() | KeyExpression() | CommandExpression() | XYZExpression() | IdentExpression() | StackLocExpression() | Eval():

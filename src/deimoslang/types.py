@@ -193,9 +193,9 @@ class EquivalentExpression(BinaryExpression):
     def __repr__(self) -> str:
         return f"EquivalentE({self.lhs}, {self.rhs})"
 
-class ContainsExpression(BinaryExpression):
+class ContainsStringExpression(BinaryExpression):
     def __repr__(self) -> str:
-        return f"ContainsE({self.lhs}, {self.rhs})"
+        return f"ContainsStrE({self.lhs}, {self.rhs})"
 
 class GreaterExpression(BinaryExpression):
     def __repr__(self) -> str:

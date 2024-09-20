@@ -286,7 +286,7 @@ class Parser:
                 target = self.expect_consume(TokenKind.string)
                 assert(type(window_path)==list and type(target.value)==str)
                 if contains:
-                    return SelectorGroup(player_selector, ContainsExpression(Eval(EvalKind.windowtext, [window_path]), StringExpression(target.value)))
+                    return SelectorGroup(player_selector, ContainsStringExpression(Eval(EvalKind.windowtext, [window_path]), StringExpression(target.value)))
                 else:
                     return SelectorGroup(player_selector, EquivalentExpression(Eval(EvalKind.windowtext, [window_path]), StringExpression(target.value)))
             case TokenKind.command_expr_playercount:
