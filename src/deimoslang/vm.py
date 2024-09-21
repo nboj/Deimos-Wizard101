@@ -294,9 +294,7 @@ class VM:
                     if not text:
                         text = await window.read_wide_string_from_offset(616)
                     return text
-                except ValueError:
-                    raise Exception(f'Cannot read window.')
-                except MemoryReadError:
+                except (ValueError, MemoryReadError):
                     raise Exception(f'Cannot read window.')
 
 
