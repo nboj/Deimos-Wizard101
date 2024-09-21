@@ -507,7 +507,7 @@ class VM:
                     self._ip += instruction.data[1]
 
             case InstructionKind.call:
-                assert(type(instruction.data)==int)
+                assert(type(instruction.data) == int)
                 self._stack.append(self._ip + 1)
                 self._ip += instruction.data 
 
