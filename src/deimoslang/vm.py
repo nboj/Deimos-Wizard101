@@ -287,7 +287,7 @@ class VM:
                 return await client.stats.base_gold_pouch()
             case EvalKind.windowtext:
                 path = eval.args[0]
-                assert(type(path)==list)
+                assert(type(path) == list)
                 window = await get_window_from_path(client.root_window, path)
                 try:
                     text = await window.maybe_text()
