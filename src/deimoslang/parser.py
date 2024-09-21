@@ -693,7 +693,7 @@ class Parser:
                 self.end_line()
                 return BreakStmt();
             case TokenKind.keyword_return:
-                self.i+=1
+                self.i += 1
                 self.end_line()
                 return ReturnStmt();
             case _:
