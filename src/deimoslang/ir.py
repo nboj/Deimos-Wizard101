@@ -159,7 +159,7 @@ class Compiler:
                     offset = offsets[sym]
                     program[idx] = Instruction(instr.kind, offset-idx)
                 case InstructionKind.jump_if | InstructionKind.jump_ifn | InstructionKind.enter_until:
-                    assert(type(instr.data)==list)
+                    assert(type(instr.data) == list)
                     sym = instr.data[1]
                     offset = offsets[sym]
                     program[idx] = Instruction(instr.kind, [instr.data[0], offset-idx])
