@@ -52,7 +52,7 @@ class Analyzer:
     def close_block(self):
         self.close_scope()
         self._loop_nesting_level = self._loop_nesting_stack.pop()
-        self._block_nesting_level-=1
+        self._block_nesting_level -= 1
 
     def open_loop(self):
         self.open_scope()
