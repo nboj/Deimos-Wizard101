@@ -689,7 +689,7 @@ class Parser:
                         elif_body_stack.append(elif_stmt)
                 return IfStmt(expr, true_body, else_body)
             case TokenKind.keyword_break:
-                self.i+=1
+                self.i += 1
                 self.end_line()
                 return BreakStmt();
             case TokenKind.keyword_return:
