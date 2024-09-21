@@ -583,7 +583,7 @@ class VM:
                 self._ip += 1
 
             case InstructionKind.write_stack:
-                assert(instruction.data!=None)
+                assert(instruction.data != None)
                 offset, expr = instruction.data
                 self._stack[offset] = await self.eval(expr)
                 self._ip += 1
