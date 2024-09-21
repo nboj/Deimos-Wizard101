@@ -258,7 +258,6 @@ class VM:
             case SubExpression():
                 lhs = await self.eval(expression.lhs, client)
                 rhs = await self.eval(expression.rhs, client)
-                assert(type(lhs)==int and type(rhs)==int)
                 return lhs - rhs
             case ContainsStringExpression():
                 lhs = await self.eval(expression.lhs, client)
