@@ -266,7 +266,7 @@ class VM:
             case _:
                 raise VMError(f"Unimplemented expression type: {expression}")
 
-    async def _eval_expression(self, eval:Eval, client: Client):
+    async def _eval_expression(self, eval: Eval, client: Client):
         kind = eval.kind
         match kind:
             case EvalKind.health:
