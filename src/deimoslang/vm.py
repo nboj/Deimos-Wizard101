@@ -250,7 +250,7 @@ class VM:
                 return True
             case ReadVarExpr():
                 loc = await self.eval(expression.loc)
-                assert(loc!=None and type(loc)==int)
+                assert(loc != None and type(loc) == int)
                 test = self._stack[loc]
                 return test
             case StackLocExpression():
