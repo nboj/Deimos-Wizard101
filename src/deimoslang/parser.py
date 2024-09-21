@@ -284,7 +284,7 @@ class Parser:
                 window_path = self.parse_window_path()
                 contains = self.consume_optional(TokenKind.contains)
                 target = self.expect_consume(TokenKind.string)
-                assert(type(window_path)==list and type(target.value)==str)
+                assert(type(window_path) == list and type(target.value) == str)
                 if contains:
                     return SelectorGroup(player_selector, ContainsStringExpression(Eval(EvalKind.windowtext, [window_path]), StringExpression(target.value)))
                 else:
